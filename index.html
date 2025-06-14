@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Agendamento de Consulta</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #eef2f3;
+      display: flex;
+      justify-content: center;
+      padding: 40px;
+    }
+
+    .container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 550px;
+    }
+
+    h2, h3 {
+      text-align: center;
+      color: #2c3e50;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    button {
+      margin-top: 20px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 12px;
+      width: 100%;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #2980b9;
+    }
+
+    .mensagem, .agendamentos {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #ecf0f1;
+      border-radius: 6px;
+      font-size: 17px;
+    }
+
+    .agendamentos ul {
+      padding-left: 0;
+      list-style: none;
+    }
+
+    .agendamentos li {
+      background: #fff;
+      border: 1px solid #ccc;
+      margin: 6px 0;
+      padding: 10px;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .agendamentos button {
+      background-color: #e74c3c;
+      width: auto;
+      padding: 5px 10px;
+      font-size: 14px;
+      border-radius: 4px;
+    }
+
+    .agendamentos button:hover {
+      background-color: #c0392b;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>Agende sua Consulta</h2>
+
+    <label for="data">Data da consulta:</label>
+    <input type="date" id="data">
+
+    <label for="hora">Hora da consulta:</label>
+    <input type="time" id="hora">
+
+    <button onclick="agendar()">Agendar</button>
+
+    <div class="mensagem" id="mensagem"></div>
+
+    <hr>
+
+    <label for="filtroData">Filtrar por data:</label>
+    <input type="date" id="filtroData" onchange="filtrarAgendamentos()">
+
+    <div class="agendamentos">
+      <h3>Consultas Agendadas:</h3>
+      <ul id="lista-agendamentos"></ul>
+    </div>
+  </div>
+
+  <script>
+    const lista = document.getElementById("lista-agendamentos");
+    const msg = document.getElementById("mensagem");
+    let agendamentos = [];
+
+    function agendar() {
+      const data = document.getElementById("data").value;
+      const hora = document.getElementById("hora").value;
+
+      if (!data || !hora) {
+        msg.innerText = "Por favor, preencha todos os campos.";
+        return;
+      }
+
+      const dataHoraEscolhida = new Date(`${data}T${hora}`);
+      const agora = new Date();
+
+      const horaConsulta = dataHoraEscolhida.getHours();
+      if (horaConsulta < 8 || horaConsulta >= 18) {
+        msg.innerText = "As consultas devem ser agendadas entre 08:00 e 18:00.";
+        return;
+      }
+
+      if (dataHoraEscolhida <= agora) {
+        msg.innerText = "A data da consulta deve ser no futuro.";
+        return;
+      }
+
+      const dia = dataHoraEscolhida.getDate().toString().padStart(2, '0');
+      const mes = (dataHoraEscolhida.getMonth() + 1).toString().padStart(2, '0');
+      const ano = dataHoraEscolhida.getFullYear();
+      const horaFormatada = dataHoraEscolhida.getHours().toString().padStart(2, '0');
+      const minuto = dataHoraEscolhida.getMinutes().toString().padStart(2, '0');
+
+      const textoConsulta = `${dia}/${mes}/${ano} às ${horaFormatada}:${minuto}`;
+      const dataConsulta = `${ano}-${mes}-${dia}`; // formato yyyy-mm-dd para filtrar
+
+      const duplicado = agendamentos.some(item => item.texto === textoConsulta);
+      if (duplicado) {
+        msg.innerText = `❌ Já existe uma consulta agendada para ${textoConsulta}.`;
+        return;
+      }
+
+      agendamentos.push({ texto: textoConsulta, data: dataConsulta });
+      atualizarLista();
+      msg.innerHTML = `✅ Consulta agendada com sucesso para <strong>${textoConsulta}</strong>.`;
+    }
+
+    function atualizarLista(filtro = "") {
+      lista.innerHTML = "";
+      const agendamentosFiltrados = filtro
+        ? agendamentos.filter(item => item.data === filtro)
+        : agendamentos;
+
+      if (agendamentosFiltrados.length === 0) {
+        lista.innerHTML = "<li>Nenhuma consulta encontrada.</li>";
+        return;
+      }
+
+      agendamentosFiltrados.forEach((item, index) => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          ${item.texto}
+          <button onclick="excluir(${index}, '${filtro}')">Excluir</button>
+        `;
+        lista.appendChild(li);
+      });
+    }
+
+    function excluir(index, filtroAtual) {
+      const agendamentosFiltrados = filtroAtual
+        ? agendamentos.filter(item => item.data === filtroAtual)
+        : agendamentos;
+
+      const itemParaExcluir = agendamentosFiltrados[index];
+      agendamentos = agendamentos.filter(item => item !== itemParaExcluir);
+      msg.innerText = `🗑️ Consulta excluída: ${itemParaExcluir.texto}`;
+      atualizarLista(filtroAtual);
+    }
+
+    function filtrarAgendamentos() {
+      const filtroData = document.getElementById("filtroData").value;
+      atualizarLista(filtroData);
+    }
+  </script>
+
+</body>
+</html>
